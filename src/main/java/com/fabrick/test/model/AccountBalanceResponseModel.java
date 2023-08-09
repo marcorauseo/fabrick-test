@@ -5,18 +5,19 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 
 @Data
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
-public class AccountBalance {
+public class AccountBalanceResponseModel {
 
     private String status;
     private ArrayList<Object> error;
     private Payload payload;
+
+
 
     @Data
     @NoArgsConstructor
