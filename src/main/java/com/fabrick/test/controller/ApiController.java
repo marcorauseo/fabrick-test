@@ -2,10 +2,13 @@ package com.fabrick.test.controller;
 
 
 import com.fabrick.test.TestApplication;
+import com.fabrick.test.entity.TransactionEntity;
 import com.fabrick.test.model.AccountBalanceResponseModel;
 import com.fabrick.test.model.AccountTransactionsResponseModel;
 import com.fabrick.test.model.MoneyTransferRequestModel;
 import com.fabrick.test.model.MoneyTransferResponseModel;
+import com.fabrick.test.model.base.Transaction;
+import com.fabrick.test.repository.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +28,14 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 
 @RestController
 public class ApiController {
+
 
 
 
@@ -47,11 +54,20 @@ public class ApiController {
 
     private static final Logger log = LoggerFactory.getLogger(TestApplication.class);
 
+
+
+    private final TransactionRepository transactionRepository;
+
+
+
     @Autowired
-    public ApiController(RestTemplate restTemplate, @Value("${sandbox.auth.schema}") String sandboxAuthSchema,@Value("${sandbox.api.key}") String sandboxApiKey) {
+    public ApiController(RestTemplate restTemplate, @Value("${sandbox.auth.schema}") String sandboxAuthSchema, @Value("${sandbox.api.key}") String sandboxApiKey
+    ,TransactionRepository transactionRepository) {
+        this.transactionRepository =transactionRepository;
         this.restTemplate = restTemplate;
         this.sandboxAuthSchema = sandboxAuthSchema;
         this.sandboxApiKey = sandboxApiKey;
+
     }
 
     @GetMapping("/getBalance/{accountId}")
@@ -118,6 +134,9 @@ public class ApiController {
                     AccountTransactionsResponseModel.class
             ).getBody();
             log.info("getAccountTransactions Response: {}", response);
+
+            saveAccountTransactionsResponse(response);
+
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (HttpStatusCodeException e) {
             log.error("getAccountTransactions Error: {}", e.getMessage());
@@ -127,6 +146,21 @@ public class ApiController {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
+
+    private void saveAccountTransactionsResponse(AccountTransactionsResponseModel response) {
+        List<Transaction> transactions = Optional.ofNullable(response.getPayload())
+                .map(AccountTransactionsResponseModel.Payload::getList)
+                .orElse(Collections.emptyList());
+
+        transactions.forEach(transaction -> {
+            TransactionEntity dbEntity = new TransactionEntity();
+            dbEntity.setTransactionId(transaction.getTransactionId());
+            dbEntity.setOperationId(transaction.getOperationId());
+            dbEntity.setAccountingDate(transaction.getAccountingDate());
+            transactionRepository.save(dbEntity);
+        });
+    }
+
 
 
     @GetMapping("/error")

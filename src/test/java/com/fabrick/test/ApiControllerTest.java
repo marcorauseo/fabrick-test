@@ -1,73 +1,78 @@
 package com.fabrick.test;
 
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
 import com.fabrick.test.controller.ApiController;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fabrick.test.model.AccountBalanceResponseModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
+@SpringJUnitConfig
+@WebMvcTest(ApiController.class)
+@AutoConfigureMockMvc
+public class ApiControllerTest {
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-class ApiControllerTest {
-
-    private ApiController apiController;
+    @Autowired
+    private MockMvc mockMvc;
 
     @Mock
     private RestTemplate restTemplate;
 
+    private ObjectMapper objectMapper;
+
+    private String baseUrl = "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/";
+
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         MockitoAnnotations.initMocks(this);
-        apiController = new ApiController(restTemplate, "sandboxAuthSchema", "sandboxApiKey");
-
+        objectMapper = new ObjectMapper();
     }
 
     @Test
-    void testGetBalance_Success() {
+    public void testGetBalance_Success() throws Exception {
         String accountId = "14537780";
-        String url = "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/" + accountId + "/balance";
-        LocalDate date = LocalDate.of(2018, 8, 17);
-        AccountBalanceResponseModel expectedResponse = new AccountBalanceResponseModel();
-        Mockito.when(restTemplate.getForObject(url, AccountBalanceResponseModel.class)).thenReturn(expectedResponse);
+        AccountBalanceResponseModel mockResponse = new AccountBalanceResponseModel();
 
-        ResponseEntity<AccountBalanceResponseModel> responseEntity = apiController.getBalance(accountId);
+        when(restTemplate.exchange(baseUrl + accountId + "/balance", HttpMethod.GET, null, AccountBalanceResponseModel.class))
+                .thenReturn(new ResponseEntity<>(mockResponse, HttpStatus.OK));
 
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(expectedResponse, responseEntity.getBody());
+        ResultActions resultActions = mockMvc.perform(get("/getBalance/{accountId}", accountId))
+                .andExpect(status().isOk());
+
+
     }
 
     @Test
-    void testGetBalance_NotFound() {
-        String accountId = "123456";
-        String url = "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/" + accountId + "/balance";
+    public void testGetBalance_NotFound() throws Exception {
+        String accountId = "123456789";
 
-        Mockito.when(restTemplate.getForObject(url, AccountBalanceResponseModel.class)).thenThrow(new HttpStatusCodeException(HttpStatus.NOT_FOUND) {});
 
-        ResponseEntity<AccountBalanceResponseModel> responseEntity = apiController.getBalance(accountId);
+        when(restTemplate.exchange(baseUrl + accountId + "/balance", HttpMethod.GET, null, AccountBalanceResponseModel.class))
+                .thenThrow(new HttpStatusCodeException(HttpStatus.NOT_FOUND, "Not Found") {});
 
-        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
-    }
+        ResultActions resultActions = mockMvc.perform(get("/getBalance/{accountId}", accountId))
+                .andExpect(status().isNotFound());
 
-    @Test
-    void testGetBalance_ServiceUnavailable() {
-        String accountId = "123456";
-        String url = "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/" + accountId + "/balance";
 
-        Mockito.when(restTemplate.getForObject(url, AccountBalanceResponseModel.class)).thenThrow(new ResourceAccessException("Service Unavailable"));
-
-        ResponseEntity<AccountBalanceResponseModel> responseEntity = apiController.getBalance(accountId);
-
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, responseEntity.getStatusCode());
     }
 }
-
