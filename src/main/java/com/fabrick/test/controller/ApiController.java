@@ -33,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 
 @RestController
@@ -161,13 +162,37 @@ public class ApiController {
                 .map(AccountTransactionsResponseModel.Payload::getList)
                 .orElse(Collections.emptyList());
 
+
         transactions.forEach(transaction -> {
             TransactionEntity dbEntity = new TransactionEntity();
-            dbEntity.setTransactionId(transaction.getTransactionId());
-            dbEntity.setOperationId(transaction.getOperationId());
-            dbEntity.setAccountingDate(transaction.getAccountingDate());
+
+            Optional.ofNullable(transaction.getTransactionId()).ifPresent(assignTo(dbEntity::setTransactionId));
+            Optional.ofNullable(transaction.getOperationId()).ifPresent(assignTo(dbEntity::setOperationId));
+            Optional.ofNullable(transaction.getAccountingDate()).ifPresent(assignTo(dbEntity::setAccountingDate));
+            Optional.ofNullable(transaction.getValueDate()).ifPresent(assignTo(dbEntity::setValueDate));
+
+            if (dbEntity.getTransactionType() != null){
+                dbEntity.getTransactionType().setEnumeration((transaction.getTransactionType().getEnumeration()));
+                dbEntity.getTransactionType().setValue((transaction.getTransactionType().getValue()));
+            }
+
+            if (dbEntity.getTransactionType() != null) {
+                TransactionEntity.TransactionType dbTransactionType = new TransactionEntity.TransactionType();
+                Optional.ofNullable(transaction.getTransactionType().getEnumeration()).ifPresent(assignTo(dbTransactionType::setEnumeration));
+                Optional.ofNullable(transaction.getTransactionType().getValue()).ifPresent(assignTo(dbTransactionType::setValue));
+                dbEntity.setTransactionType(dbTransactionType);
+            }
+
+            Optional.ofNullable(transaction.getAmount()).ifPresent(assignTo(dbEntity::setAmount));
+            Optional.ofNullable(transaction.getCurrency()).ifPresent(assignTo(dbEntity::setCurrency));
+            Optional.ofNullable(transaction.getDescription()).ifPresent(assignTo(dbEntity::setDescription));
+
             transactionRepository.save(dbEntity);
         });
+    }
+
+    private <T> Consumer<T> assignTo(Consumer<T> setter) {
+        return setter;
     }
 
 
