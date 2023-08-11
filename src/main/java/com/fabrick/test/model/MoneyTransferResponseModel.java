@@ -6,6 +6,7 @@ import com.fabrick.test.model.base.Amount;
 import com.fabrick.test.model.base.Creditor;
 import com.fabrick.test.model.base.Debtor;
 import com.fabrick.test.model.base.Fee;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,7 +23,7 @@ import java.util.List;
 public class MoneyTransferResponseModel {
 
     private String status;
-    private ArrayList<Object> error;
+    private ArrayList<Object> errors;
     private Payload payload;
 
     @Data
@@ -46,12 +47,14 @@ public class MoneyTransferResponseModel {
         private Date debtorValueDate;
         private Date creditorValueDate;
         private Amount amount;
-        private boolean isUrgent;
-        private boolean isInstant;
+        @JsonProperty(value = "isUrgent")
+        private Boolean isUrgent;
+        @JsonProperty(value = "isInstant")
+        private Boolean isInstant;
         private String feeType;
         private String feeAccountId;
         private List<Fee> fees;
-        private boolean hasTaxRelief;
+        private Boolean hasTaxRelief;
 
 
     }

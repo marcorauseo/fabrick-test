@@ -2,13 +2,15 @@ package com.fabrick.test.controller;
 
 
 import com.fabrick.test.TestApplication;
+import com.fabrick.test.repository.TransactionRepository;
 import com.fabrick.test.entity.TransactionEntity;
 import com.fabrick.test.model.AccountBalanceResponseModel;
 import com.fabrick.test.model.AccountTransactionsResponseModel;
 import com.fabrick.test.model.MoneyTransferRequestModel;
 import com.fabrick.test.model.MoneyTransferResponseModel;
 import com.fabrick.test.model.base.Transaction;
-import com.fabrick.test.repository.TransactionRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,11 +60,14 @@ public class ApiController {
 
     private final TransactionRepository transactionRepository;
 
+    private final ObjectMapper objectMapper;
+
 
 
     @Autowired
-    public ApiController(RestTemplate restTemplate, @Value("${sandbox.auth.schema}") String sandboxAuthSchema, @Value("${sandbox.api.key}") String sandboxApiKey
-    ,TransactionRepository transactionRepository) {
+    public ApiController(ObjectMapper objectMapper,RestTemplate restTemplate, @Value("${sandbox.auth.schema}") String sandboxAuthSchema, @Value("${sandbox.api.key}") String sandboxApiKey
+    , TransactionRepository transactionRepository) {
+        this.objectMapper = objectMapper;
         this.transactionRepository =transactionRepository;
         this.restTemplate = restTemplate;
         this.sandboxAuthSchema = sandboxAuthSchema;
@@ -102,6 +107,7 @@ public class ApiController {
         String url = baseUrl + accountId + "/payments/money-transfers";
 
         try {
+            log.info(objectMapper.writeValueAsString(request));
             MoneyTransferResponseModel response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
@@ -111,11 +117,14 @@ public class ApiController {
             log.info("postMoneyTransfers Response: {}", response);
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (HttpStatusCodeException e) {
+            MoneyTransferResponseModel responseModel = e.getResponseBodyAs(MoneyTransferResponseModel.class);
             log.error("postMoneyTransfers Error: {}", e.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(responseModel,e.getStatusCode());
         } catch (ResourceAccessException e) {
             log.error("postMoneyTransfers Error: {}", e.getMessage());
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @NoArgsConstructor
 @Builder
@@ -17,7 +19,7 @@ public class Transaction {
     private String accountingDate;
     private String valueDate;
     private TransactionType transactionType;
-    private int amount;
+    private BigDecimal amount;
     private String currency;
     private String description;
 

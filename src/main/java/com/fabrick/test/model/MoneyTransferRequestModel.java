@@ -6,6 +6,7 @@ import com.fabrick.test.model.base.Creditor;
 import com.fabrick.test.model.base.LegalPersonBeneficiary;
 import com.fabrick.test.model.base.NaturalPersonBeneficiary;
 import com.fabrick.test.model.base.TaxRelief;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,8 +28,10 @@ public class MoneyTransferRequestModel {
     private String description;
     private double amount;
     private String currency;
-    private boolean isUrgent;
-    private boolean isInstant;
+    @JsonProperty(value = "isUrgent")
+    private Boolean isUrgent;
+    @JsonProperty(value = "isInstant")
+    private Boolean isInstant;
     private String feeType;
     private String feeAccountId;
     private TaxRelief taxRelief;
