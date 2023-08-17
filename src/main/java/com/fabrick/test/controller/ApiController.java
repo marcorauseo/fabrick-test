@@ -2,6 +2,7 @@ package com.fabrick.test.controller;
 
 
 import com.fabrick.test.TestApplication;
+import com.fabrick.test.command.AccountTransactionsCommand;
 import com.fabrick.test.repository.TransactionRepository;
 import com.fabrick.test.entity.TransactionEntity;
 import com.fabrick.test.model.AccountBalanceResponseModel;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -62,6 +64,9 @@ public class ApiController {
     private final TransactionRepository transactionRepository;
 
     private final ObjectMapper objectMapper;
+
+    @Autowired
+    private AccountTransactionsCommand transactionsCommand;
 
 
 
@@ -108,7 +113,7 @@ public class ApiController {
         String url = baseUrl + accountId + "/payments/money-transfers";
 
         try {
-            log.info(objectMapper.writeValueAsString(request));
+            //log.info(objectMapper.writeValueAsString(request));
             MoneyTransferResponseModel response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
@@ -124,40 +129,54 @@ public class ApiController {
         } catch (ResourceAccessException e) {
             log.error("postMoneyTransfers Error: {}", e.getMessage());
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        } //catch (JsonProcessingException e) {
+            //throw new RuntimeException(e);
+        //}
     }
 
+//    @GetMapping("/transactions/{accountId}")
+//    public ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(@PathVariable String accountId, @RequestParam(name = "fromAccountingDate") String fromAccountingDate,
+//                                                                                   @RequestParam(name = "toAccountingDate") String toAccountingDate) {
+//
+//    }
+
+//    private ResponseEntity<AccountTransactionsResponseModel> getAccountTransactionsResponseModelResponseEntity(String accountId, String fromAccountingDate, String toAccountingDate) {
+//        log.info("getAccountTransactions: AccountId = {}, FromDate = {}, ToDate = {}", accountId, fromAccountingDate, toAccountingDate);
+//        HttpHeaders headers = getHeaders();
+//        HttpEntity<?> entity = new HttpEntity<>(headers);
+//        String url = baseUrl + accountId + "/transactions" + "?fromAccountingDate=" + fromAccountingDate + "&toAccountingDate=" + toAccountingDate;
+//        try {
+//            AccountTransactionsResponseModel response = restTemplate.exchange(
+//                    url,
+//                    HttpMethod.GET,
+//                    entity,
+//                    AccountTransactionsResponseModel.class
+//            ).getBody();
+//            log.info("getAccountTransactions Response: {}", response);
+//
+//            saveAccountTransactionsResponse(response);
+//
+//            return new ResponseEntity<>(response, HttpStatus.OK);
+//        } catch (HttpStatusCodeException e) {
+//            log.error("getAccountTransactions Error: {}", e.getMessage());
+//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+//        } catch (ResourceAccessException e) {
+//            log.error("getAccountTransactions Error: {}", e.getMessage());
+//            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+//        }
+//    }
     @GetMapping("/transactions/{accountId}")
-    public ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(@PathVariable String accountId, @RequestParam(name = "fromAccountingDate") String fromAccountingDate,
-                                                                                   @RequestParam(name = "toAccountingDate") String toAccountingDate) {
+    private ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(@PathVariable String accountId, @RequestParam(name = "fromAccountingDate") String fromAccountingDate,
+                                                                                   @RequestParam(name = "toAccountingDate") String toAccountingDate,@RequestBody String body)  {
         log.info("getAccountTransactions: AccountId = {}, FromDate = {}, ToDate = {}", accountId, fromAccountingDate, toAccountingDate);
         HttpHeaders headers = getHeaders();
-        HttpEntity<?> entity = new HttpEntity<>(headers);
+        HttpEntity<?> entity = new HttpEntity<>(body,headers);
         String url = baseUrl + accountId + "/transactions" + "?fromAccountingDate=" + fromAccountingDate + "&toAccountingDate=" + toAccountingDate;
-        try {
-            AccountTransactionsResponseModel response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    AccountTransactionsResponseModel.class
-            ).getBody();
-            log.info("getAccountTransactions Response: {}", response);
 
-            saveAccountTransactionsResponse(response);
-
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (HttpStatusCodeException e) {
-            log.error("getAccountTransactions Error: {}", e.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        } catch (ResourceAccessException e) {
-            log.error("getAccountTransactions Error: {}", e.getMessage());
-            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
-        }
+        return transactionsCommand.execute(accountId, fromAccountingDate, toAccountingDate,url, entity);
     }
 
-    private void saveAccountTransactionsResponse(AccountTransactionsResponseModel response) {
+    public void saveAccountTransactionsResponse(AccountTransactionsResponseModel response) {
         List<Transaction> transactions = Optional.ofNullable(response.getPayload())
                 .map(AccountTransactionsResponseModel.Payload::getList)
                 .orElse(Collections.emptyList());
