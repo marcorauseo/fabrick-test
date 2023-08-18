@@ -34,7 +34,7 @@ public class AccountTransactionsService {
     private static final Logger log = LoggerFactory.getLogger(TestApplication.class);
 
 
-    private final String baseUrl = "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/";
+
 
     public ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(String accountId, String fromAccountingDate, String toAccountingDate, String url, HttpEntity<?> entity) {
         log.info("getAccountTransactions: AccountId = {}, FromDate = {}, ToDate = {}", accountId, fromAccountingDate, toAccountingDate);
@@ -60,7 +60,7 @@ public class AccountTransactionsService {
         }
     }
 
-    private void saveAccountTransactionsResponse(AccountTransactionsResponseModel response) {
+    void saveAccountTransactionsResponse(AccountTransactionsResponseModel response) {
         List<Transaction> transactions = Optional.ofNullable(response.getPayload())
                 .map(AccountTransactionsResponseModel.Payload::getList)
                 .orElse(Collections.emptyList());

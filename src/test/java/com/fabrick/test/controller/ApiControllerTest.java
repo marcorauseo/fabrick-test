@@ -1,5 +1,6 @@
-package com.fabrick.test;
+package com.fabrick.test.controller;
 
+import com.fabrick.test.command.AccountTransactionsCommand;
 import com.fabrick.test.controller.ApiController;
 import com.fabrick.test.model.AccountBalanceResponseModel;
 import com.fabrick.test.model.AccountTransactionsResponseModel;
@@ -7,12 +8,15 @@ import com.fabrick.test.model.MoneyTransferRequestModel;
 import com.fabrick.test.model.MoneyTransferResponseModel;
 import com.fabrick.test.model.base.Transaction;
 import com.fabrick.test.repository.TransactionRepository;
+import com.fabrick.test.service.AccountTransactionsService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -25,6 +29,7 @@ import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -36,8 +41,14 @@ public class ApiControllerTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+
+
     @InjectMocks
     private ApiController apiController;
+    @InjectMocks
+    private AccountTransactionsCommand transactionsCommand;
+    @InjectMocks
+    private AccountTransactionsService transactionsService;
 
     @Test
     public void testGetBalance_Success() {
@@ -81,7 +92,7 @@ public class ApiControllerTest {
         // Test
         ResponseEntity<AccountBalanceResponseModel> result = apiController.getBalance(accountId);
 
-        // Assertions
+
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, result.getStatusCode());
         assertNull(result.getBody());
     }
@@ -96,25 +107,14 @@ public class ApiControllerTest {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(MoneyTransferResponseModel.class)))
                 .thenReturn(responseEntity);
 
-        // Test
+
         ResponseEntity<MoneyTransferResponseModel> result = apiController.postMoneyTransfers(accountId, request);
 
-        // Assertions
+
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(responseModel, result.getBody());
     }
 
-    // Similarly, write tests for other controller methods
 
-    @Test
-    public void testSaveAccountTransactionsResponse_Success() {
-        // Mocking
-        AccountTransactionsResponseModel responseModel = new AccountTransactionsResponseModel();
-        Transaction transaction = new Transaction(); // Initialize as needed
-        responseModel.setPayload(new AccountTransactionsResponseModel.Payload(Collections.singletonList(transaction)));
 
-        // Test
-        apiController.saveAccountTransactionsResponse(responseModel);
-
-    }
-}        //
+}

@@ -47,7 +47,7 @@ public class ApiController {
     public final RestTemplate restTemplate;
     public final String sandboxAuthSchema;
     public final String sandboxApiKey;
-    private HttpHeaders getHeaders() {
+    public HttpHeaders getHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("content-type", "application/json");
         headers.set("Auth-Schema", sandboxAuthSchema);
@@ -63,7 +63,7 @@ public class ApiController {
 
     private final TransactionRepository transactionRepository;
 
-    private final ObjectMapper objectMapper;
+
 
     @Autowired
     private AccountTransactionsCommand transactionsCommand;
@@ -73,7 +73,6 @@ public class ApiController {
     @Autowired
     public ApiController(ObjectMapper objectMapper,RestTemplate restTemplate, @Value("${sandbox.auth.schema}") String sandboxAuthSchema, @Value("${sandbox.api.key}") String sandboxApiKey
     , TransactionRepository transactionRepository) {
-        this.objectMapper = objectMapper;
         this.transactionRepository =transactionRepository;
         this.restTemplate = restTemplate;
         this.sandboxAuthSchema = sandboxAuthSchema;
@@ -113,7 +112,7 @@ public class ApiController {
         String url = baseUrl + accountId + "/payments/money-transfers";
 
         try {
-            //log.info(objectMapper.writeValueAsString(request));
+
             MoneyTransferResponseModel response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
@@ -129,89 +128,19 @@ public class ApiController {
         } catch (ResourceAccessException e) {
             log.error("postMoneyTransfers Error: {}", e.getMessage());
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
-        } //catch (JsonProcessingException e) {
-            //throw new RuntimeException(e);
-        //}
+        }
     }
 
-//    @GetMapping("/transactions/{accountId}")
-//    public ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(@PathVariable String accountId, @RequestParam(name = "fromAccountingDate") String fromAccountingDate,
-//                                                                                   @RequestParam(name = "toAccountingDate") String toAccountingDate) {
-//
-//    }
 
-//    private ResponseEntity<AccountTransactionsResponseModel> getAccountTransactionsResponseModelResponseEntity(String accountId, String fromAccountingDate, String toAccountingDate) {
-//        log.info("getAccountTransactions: AccountId = {}, FromDate = {}, ToDate = {}", accountId, fromAccountingDate, toAccountingDate);
-//        HttpHeaders headers = getHeaders();
-//        HttpEntity<?> entity = new HttpEntity<>(headers);
-//        String url = baseUrl + accountId + "/transactions" + "?fromAccountingDate=" + fromAccountingDate + "&toAccountingDate=" + toAccountingDate;
-//        try {
-//            AccountTransactionsResponseModel response = restTemplate.exchange(
-//                    url,
-//                    HttpMethod.GET,
-//                    entity,
-//                    AccountTransactionsResponseModel.class
-//            ).getBody();
-//            log.info("getAccountTransactions Response: {}", response);
-//
-//            saveAccountTransactionsResponse(response);
-//
-//            return new ResponseEntity<>(response, HttpStatus.OK);
-//        } catch (HttpStatusCodeException e) {
-//            log.error("getAccountTransactions Error: {}", e.getMessage());
-//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-//        } catch (ResourceAccessException e) {
-//            log.error("getAccountTransactions Error: {}", e.getMessage());
-//            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
-//        }
-//    }
     @GetMapping("/transactions/{accountId}")
-    private ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(@PathVariable String accountId, @RequestParam(name = "fromAccountingDate") String fromAccountingDate,
-                                                                                   @RequestParam(name = "toAccountingDate") String toAccountingDate,@RequestBody String body)  {
+    public ResponseEntity<AccountTransactionsResponseModel> getAccountTransactions(@PathVariable String accountId, @RequestParam(name = "fromAccountingDate") String fromAccountingDate,
+                                                                                   @RequestParam(name = "toAccountingDate") String toAccountingDate, @RequestBody String body)  {
         log.info("getAccountTransactions: AccountId = {}, FromDate = {}, ToDate = {}", accountId, fromAccountingDate, toAccountingDate);
         HttpHeaders headers = getHeaders();
         HttpEntity<?> entity = new HttpEntity<>(body,headers);
         String url = baseUrl + accountId + "/transactions" + "?fromAccountingDate=" + fromAccountingDate + "&toAccountingDate=" + toAccountingDate;
 
         return transactionsCommand.execute(accountId, fromAccountingDate, toAccountingDate,url, entity);
-    }
-
-    public void saveAccountTransactionsResponse(AccountTransactionsResponseModel response) {
-        List<Transaction> transactions = Optional.ofNullable(response.getPayload())
-                .map(AccountTransactionsResponseModel.Payload::getList)
-                .orElse(Collections.emptyList());
-
-
-        transactions.forEach(transaction -> {
-            TransactionEntity dbEntity = new TransactionEntity();
-
-            Optional.ofNullable(transaction.getTransactionId()).ifPresent(assignTo(dbEntity::setTransactionId));
-            Optional.ofNullable(transaction.getOperationId()).ifPresent(assignTo(dbEntity::setOperationId));
-            Optional.ofNullable(transaction.getAccountingDate()).ifPresent(assignTo(dbEntity::setAccountingDate));
-            Optional.ofNullable(transaction.getValueDate()).ifPresent(assignTo(dbEntity::setValueDate));
-
-            if (dbEntity.getTransactionType() != null){
-                dbEntity.getTransactionType().setEnumeration((transaction.getTransactionType().getEnumeration()));
-                dbEntity.getTransactionType().setValue((transaction.getTransactionType().getValue()));
-            }
-
-            if (dbEntity.getTransactionType() != null) {
-                TransactionEntity.TransactionType dbTransactionType = new TransactionEntity.TransactionType();
-                Optional.ofNullable(transaction.getTransactionType().getEnumeration()).ifPresent(assignTo(dbTransactionType::setEnumeration));
-                Optional.ofNullable(transaction.getTransactionType().getValue()).ifPresent(assignTo(dbTransactionType::setValue));
-                dbEntity.setTransactionType(dbTransactionType);
-            }
-
-            Optional.ofNullable(transaction.getAmount()).ifPresent(assignTo(dbEntity::setAmount));
-            Optional.ofNullable(transaction.getCurrency()).ifPresent(assignTo(dbEntity::setCurrency));
-            Optional.ofNullable(transaction.getDescription()).ifPresent(assignTo(dbEntity::setDescription));
-
-            transactionRepository.save(dbEntity);
-        });
-    }
-
-    private <T> Consumer<T> assignTo(Consumer<T> setter) {
-        return setter;
     }
 
 
